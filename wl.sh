@@ -12,7 +12,7 @@ fi
 #   but this approach safeguards against possibility that an earlier line does
 # If no line is found w/ blank end_time, this will print 0 due to the `+0` part
 _find_active_line_num() {
-    awk -F',' 'NR > 1 && $4 == "" { found = NR } END { print found+0 }' "$CSV_FILE"
+    awk -F ',' 'NR > 1 && $4 == "" { found = NR } END { print found+0 }' "$CSV_FILE"
 }
 
 case "$1" in
