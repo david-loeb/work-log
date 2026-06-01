@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CSV_FILE="$HOME/Desktop/work_log.csv"
+CSV_FILE="$HOME/Desktop/work_log.txt"
 
 if [ ! -f "$CSV_FILE" ]; then
     echo "date,day,start_time,end_time,activity,description" > "$CSV_FILE"
@@ -18,7 +18,7 @@ _find_active_line_num() {
 case "$1" in
     start)
         if [ -z "$2" ]; then
-            echo "Error: please provide an activity name."
+            echo "Error: provide an activity name"
             exit 1
         fi
 
@@ -30,7 +30,7 @@ case "$1" in
 
         DATE=$(date +"%Y-%m-%d")
         DAY=$(date +"%a")
-        START_TIME=$(date +"%H:%M:%S")
+        START_TIME=$(date +"%H:%M")
         printf '%s,%s,%s,,%s,%s\n' "$DATE" "$DAY" "$START_TIME" "$2" "${*:3}" >> "$CSV_FILE"
         ;;
 
@@ -41,7 +41,7 @@ case "$1" in
             exit 1
         fi
 
-        END_TIME=$(date +"%H:%M:%S")
+        END_TIME=$(date +"%H:%M")
 
         awk -v n="$ACTIVE" -v t="$END_TIME" '
             NR == n {
@@ -51,6 +51,38 @@ case "$1" in
             }
             { print }
         ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
+        ;;
+
+    total)
+        _sum_total_hours() {
+            awk -F ',' -v d="$DATE" '
+                $1 >= d {
+                    split($3, start, ":") 
+                    start_min = (start[1] * 60) + start[2]
+                    split($4, end, ":") 
+                    end_min = (end[1] * 60) + end[2]
+                    diff = end_min - start_min
+                    sum += diff
+                }
+                END { printf "%.2f", sum / 60 }
+            ' "$CSV_FILE"
+        }
+
+        case "$2" in
+            ""|-d|--day|--today)
+                DATE=$(date +"%Y-%m-%d")
+                TOTAL=$(_sum_total_hours)
+                echo "Today: $TOTAL"
+                ;;
+            -w|--week)
+                DATE=$(date -v-monday +"%Y-%m-%d")  # most recent Monday
+                TOTAL=$(_sum_total_hours)
+                echo "This week: $TOTAL"
+                ;;
+            *)
+                echo "Error: options are -d (today) or -w (this week)"
+                ;;
+        esac
         ;;
 
     status)
