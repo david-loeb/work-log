@@ -1,0 +1,10 @@
+- `wl total -d [optional specific day]` and `wl total -w [optional specific week]` for totals across days and weeks
+	- if no specific day/week specified, will give current day/week
+	- If no flag specified, gives current day
+- `wl mean [optional time span]`: will give average weekly hours
+	- if no time span specified, gives the average year-to-date excluding current week
+	- not sure exactly how to approach the time span specification
+		- maybe like arg 1 is start date, and if no arg 2 specified, it will go that date to present, with as many "full weeks" ie 7-day spans as possible (so excludes any days up to present that are remainders of dividing by 7)
+		- then if arg 2 specified, that will be the end date rather than current day
+- maybe add an `-n` flag for non-work? and track that in a separate CSV?
+	- or could just do a separate prog for this, or could change from work log to overall activity log tracker (but i think this is overkill bc i wont wanna do non-work all the time)
