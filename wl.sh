@@ -55,27 +55,40 @@ case "$1" in
 
     total)
         _sum_total_hours() {
-            awk -F ',' -v d="$DATE" '
-                $1 >= d {
-                    split($3, start, ":") 
-                    start_min = (start[1] * 60) + start[2]
-                    split($4, end, ":") 
-                    end_min = (end[1] * 60) + end[2]
-                    diff = end_min - start_min
-                    sum += diff
+            awk -F ',' -v ws="$WINDOW_START" '
+                NR > 1 && $4 != "" {
+                    if (($1 " " $3) >= ws) {
+                        split($3, start, ":")
+                        split($4, end, ":")
+                        start_min = start[1] * 60 + start[2]
+                        end_min = end[1] * 60 + end[2]
+                        if (end_min < start_min) end_min += 1440
+                        sum += end_min - start_min
+                    }
                 }
                 END { printf "%.2f", sum / 60 }
             ' "$CSV_FILE"
         }
 
+        HOUR=$(date +"%H")
+
         case "$2" in
             ""|-d|--day|--today)
-                DATE=$(date +"%Y-%m-%d")
+                if [ "$HOUR" -lt 6 ]; then
+                    WINDOW_START="$(date -v-1d +"%Y-%m-%d") 06:00"
+                else
+                    WINDOW_START="$(date +"%Y-%m-%d") 06:00"
+                fi
                 TOTAL=$(_sum_total_hours)
                 echo "Today: $TOTAL"
                 ;;
             -w|--week)
-                DATE=$(date -v-monday +"%Y-%m-%d")  # most recent Monday
+                if [ $(date +"%a") = "Mon" ] && [ "$HOUR" -lt 6 ]; then
+                    MONDAY=$(date -v-1w +"%Y-%m-%d")
+                else
+                    MONDAY=$(date -v-monday +"%Y-%m-%d")
+                fi
+                WINDOW_START="$MONDAY 06:00"
                 TOTAL=$(_sum_total_hours)
                 echo "This week: $TOTAL"
                 ;;

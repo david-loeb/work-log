@@ -8,3 +8,5 @@
 		- then if arg 2 specified, that will be the end date rather than current day
 - maybe add an `-n` flag for non-work? and track that in a separate CSV?
 	- or could just do a separate prog for this, or could change from work log to overall activity log tracker (but i think this is overkill bc i wont wanna do non-work all the time)
+
+- remember to handle the midnight crossing properly in the app
