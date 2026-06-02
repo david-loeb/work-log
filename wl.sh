@@ -111,7 +111,8 @@ case "$1" in
         echo "Usage:"
         echo "  wl start [activity] [description]   Start tracking an activity"
         echo "  wl stop                             Stop the current activity"
-        echo "  wl status                           Show active session"
+        echo "  wl total [-d -w]                    Show total hours worked today or this week"
+        echo "  wl status                           Check for active session"
         echo ""
         echo "CSV: $CSV_FILE"
         ;;
