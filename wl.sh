@@ -54,10 +54,23 @@ case "$1" in
         ;;
 
     total)
+        # WINDOW_START (defined below) is a date and time that represents the 
+        #   "beginning" of the day / week, where the time is always set to 6am.
+        #   This lets me effectively have days start at 6am and run til 6am the
+        #   following day.
+        # The function concatenates each row's date and time cols to check if 
+        #   the combo is greater than WINDOW_START and only uses those rows to 
+        #   calculate the total hours.
+        # WINDOW_END (defined below) is set to blank for today and this week 
+        #   totals, and is set to the start of the current week for the last 
+        #   week total.
+        # The func also adds 24 hours to the end time if it's earlier than the 
+        #   start time, which happens when a session goes through midnight.
         _sum_total_hours() {
-            awk -F ',' -v ws="$WINDOW_START" '
+            awk -F ',' -v ws="$WINDOW_START" -v we="$WINDOW_END" '
                 NR > 1 && $4 != "" {
-                    if (($1 " " $3) >= ws) {
+                    row_dt = $1 " " $3
+                    if (row_dt >= ws && (we == "" || row_dt < we)) {
                         split($3, start, ":")
                         split($4, end, ":")
                         start_min = start[1] * 60 + start[2]
@@ -74,26 +87,58 @@ case "$1" in
 
         case "$2" in
             ""|-d|--day|--today)
+                # If it's currently between 12am & 6am, the start window is set 
+                #   to the prior day's date at 6am.
+                # Otherwise, it's set to today's date at 6am.
                 if [ "$HOUR" -lt 6 ]; then
                     WINDOW_START="$(date -v-1d +"%Y-%m-%d") 06:00"
                 else
                     WINDOW_START="$(date +"%Y-%m-%d") 06:00"
                 fi
+                WINDOW_END=""
                 TOTAL=$(_sum_total_hours)
                 echo "Today: $TOTAL"
                 ;;
-            -w|--week)
+
+            -w|-tw|--week|--this-week)
+                # If it's currently a Monday btwn 12am & 6am, the Monday that
+                #   begins the current week is set to the prior Monday at 6am.
+                # Otherwise, it's set to the most recent Monday at 6am, 
+                #   including if today is Monday after 6am.
                 if [ $(date +"%a") = "Mon" ] && [ "$HOUR" -lt 6 ]; then
                     MONDAY=$(date -v-1w +"%Y-%m-%d")
                 else
                     MONDAY=$(date -v-monday +"%Y-%m-%d")
                 fi
                 WINDOW_START="$MONDAY 06:00"
+                WINDOW_END=""
                 TOTAL=$(_sum_total_hours)
                 echo "This week: $TOTAL"
                 ;;
+
+            -lw|--last-week)
+                # Get monday that ends last week (ie mon that starts cur week)
+                if [ $(date +"%a") = "Mon" ] && [ "$HOUR" -lt 6 ]; then
+                    MONDAY_END=$(date -v-1w +"%Y-%m-%d")
+                else
+                    MONDAY_END=$(date -v-monday +"%Y-%m-%d")
+                fi
+                # Get Monday that started the last week
+                # -j tells date not to set system clock (and parse input string
+                #   instead)
+                # -v-1w subtracts a week off the input string
+                # -f "%Y-%m-%d" specifies format input string is in
+                # "$MONDAY_END" is the input string
+                # "+%Y-%m-%d" is format for output date
+                MONDAY_START=$(date -j -v-1w -f "%Y-%m-%d" "$MONDAY_END" "+%Y-%m-%d")
+                WINDOW_START="$MONDAY_START 06:00"
+                WINDOW_END="$MONDAY_END 06:00"
+                TOTAL=$(_sum_total_hours)
+                echo "Last week: $TOTAL"
+                ;;
+
             *)
-                echo "Error: options are -d (today) or -w (this week)"
+                echo "Error: options are -d (today), -w (this week), or -lw (last week)"
                 ;;
         esac
         ;;
@@ -109,10 +154,10 @@ case "$1" in
 
     *)
         echo "Usage:"
-        echo "  wl start [activity] [description]   Start tracking an activity"
-        echo "  wl stop                             Stop the current activity"
-        echo "  wl total [-d -w]                    Show total hours worked today or this week"
-        echo "  wl status                           Check for active session"
+        echo "  wl start [activity] [descrip]   Start tracking an activity"
+        echo "  wl stop                         Stop the current activity"
+        echo "  wl total [-d -w -lw]            Show total hours worked"
+        echo "  wl status                       Check for active session"
         echo ""
         echo "CSV: $CSV_FILE"
         ;;
