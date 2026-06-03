@@ -148,7 +148,9 @@ case "$1" in
         if [ "$ACTIVE" -eq 0 ]; then
             echo "No active session"
         else
-            echo "Active"
+            LINE=$(awk -F ',' -v n="$ACTIVE" 'NR==n' "$CSV_FILE")
+            ACTIVITY=$(echo "$LINE" | cut -d ',' -f 5)
+            echo "Active: $ACTIVITY"
         fi
         ;;
 
