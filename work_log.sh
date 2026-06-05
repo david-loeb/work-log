@@ -60,6 +60,40 @@ case "$1" in
         ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         ;;
 
+    resume)
+        ACTIVE=$(_find_active_line_num)
+        if [ "$ACTIVE" -gt 0 ]; then
+            echo "Error: session already active"
+            exit 1
+        fi
+
+        DATE=$(date +"%Y-%m-%d")
+        DAY=$(date +"%a")
+        START_TIME=$(date +"%H:%M")
+        LINE=$(tail -n 1 "$CSV_FILE")
+        ACTIVITY=$(echo "$LINE" | cut -d ',' -f 5)
+        DESCRIPTION=$(echo "$LINE" | cut -d ',' -f 6)
+        printf '%s,%s,%s,,%s,%s\n' "$DATE" "$DAY" "$START_TIME" "$ACTIVITY" "$DESCRIPTION" >> "$CSV_FILE"
+        ;;
+
+    undo)
+        ACTIVE=$(_find_active_line_num)
+        if [ "$ACTIVE" -gt 0 ]; then
+            echo "Error: session already active"
+            exit 1
+        fi
+
+        LAST_LINE_NUM=$(wc -l < "$CSV_FILE")
+        awk -F ',' -v l="$LAST_LINE_NUM" '
+            NR == l {
+                match($0, /:[0-9][0-9],[0-9][0-9]:/)
+                print substr($0, 1, RSTART + 3) substr($0, RSTART + 9)
+                next
+            }
+            { print }
+        ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
+        ;;
+
     # Manually input time(s)
     [01][0-9]:[0-5][0-9] | 2[0-3]:[0-5][0-9])
         if [ -z "$2" ]; then
@@ -207,8 +241,22 @@ case "$1" in
                 echo "Last week: $TOTAL"
                 ;;
 
+            -wd|--week-daily|--week-by-day)
+                for i in {6..0}; do
+                    if [ "$HOUR" -lt 6 ]; then
+                        ((i++))
+                    fi
+                    WINDOW_START_DATE="$(date -v-${i}d +"%Y-%m-%d")"
+                    WINDOW_START="$WINDOW_START_DATE 06:00"
+                    WINDOW_END="$(date -j -v+1d -f "%Y-%m-%d" "$WINDOW_START_DATE" "+%Y-%m-%d") 06:00"
+                    DAY="$(date -j -f "%Y-%m-%d" "$WINDOW_START_DATE" +%a)"
+                    TOTAL=$(_sum_total_hours)
+                    echo "$DAY: $TOTAL"
+                done
+                ;;
+
             *)
-                echo "Error: options are -d (today), -w (this week), or -lw (last week)"
+                echo "Error: options are -d (today), -w (this week), -lw (last week), or -wd (week by day)"
                 ;;
         esac
         ;;
@@ -218,10 +266,15 @@ case "$1" in
         if [ "$ACTIVE" -eq 0 ]; then
             echo "No active session"
         else
-            LINE=$(awk -F ',' -v n="$ACTIVE" 'NR==n' "$CSV_FILE")
+            LINE=$(awk -F ',' -v n="$ACTIVE" 'NR == n' "$CSV_FILE")
             ACTIVITY=$(echo "$LINE" | cut -d ',' -f 5)
-            echo "Active: $ACTIVITY"
+            START_TIME=$(echo "$LINE" | cut -d ',' -f 3)
+            echo "Active: $ACTIVITY @ $START_TIME"
         fi
+        ;;
+
+    open)
+        open "$CSV_FILE"
         ;;
 
     sort)
@@ -234,10 +287,13 @@ case "$1" in
         echo "Usage:"
         echo "  wl start <activity> [descr]                         Start tracking activity"
         echo "  wl stop [HH:MM]                                     Stop current activity"
+        echo "  wl resume                                           Re-start prior activity"
+        echo "  wl undo                                             Undo a stop"
         echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
         echo "  wl <YYYY-MM-DD> <HH:MM> [HH:MM] <activity> [descr]  Input date & time(s) manually"
         echo "  wl total [-d -w -lw]                                Show total hours worked"
         echo "  wl status                                           Check for active session"
+        echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
         echo "Output: $CSV_FILE"
         ;;
