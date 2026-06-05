@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CSV_FILE="$HOME/Desktop/work_log.txt"
+CSV_FILE="$HOME/Desktop/Software/cli/work-log/work_log.txt"
 
 if [ ! -f "$CSV_FILE" ]; then
     echo "date,day,start_time,end_time,activity,description" > "$CSV_FILE"
@@ -41,7 +41,14 @@ case "$1" in
             exit 1
         fi
 
-        END_TIME=$(date +"%H:%M")
+        if [ -z "$2" ]; then
+            END_TIME=$(date +"%H:%M")
+        elif printf '%s' "$2" | grep -qE '^([01][0-9]|2[0-3]):[0-5][0-9]$'; then
+            END_TIME="$2"
+        else
+            echo "Error: argument must be a valid time in HH:MM (or blank)"
+            exit 1
+        fi
 
         awk -v n="$ACTIVE" -v t="$END_TIME" '
             NR == n {
@@ -51,6 +58,69 @@ case "$1" in
             }
             { print }
         ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
+        ;;
+
+    # Manually input time(s)
+    [01][0-9]:[0-5][0-9] | 2[0-3]:[0-5][0-9])
+        if [ -z "$2" ]; then
+            echo "Error: provide an activity name"
+            exit 1
+        fi
+
+        # End time provided
+        if printf '%s' "$2" | grep -qE '^([01][0-9]|2[0-3]):[0-5][0-9]$'; then
+            if [ -z "$3" ]; then
+                echo "Error: provide an activity name"
+                exit 1
+            fi
+
+            DATE=$(date +"%Y-%m-%d")
+            DAY=$(date +"%a")
+            printf '%s,%s,%s,%s,%s,%s\n' "$DATE" "$DAY" "$1" "$2" "$3" "${*:4}" >> "$CSV_FILE"
+        else
+            ACTIVE=$(_find_active_line_num)
+            if [ "$ACTIVE" -gt 0 ]; then
+                echo "Error: session already active"
+                exit 1
+            fi
+
+            DATE=$(date +"%Y-%m-%d")
+            DAY=$(date +"%a")
+            printf '%s,%s,%s,,%s,%s\n' "$DATE" "$DAY" "$1" "$2" "${*:3}" >> "$CSV_FILE"
+        fi
+        ;;
+
+    # Manually input date & time(s)
+    20[2-9][0-9]-[01][1-9]-[0-3][0-9])
+        if [ -z "$2" ]; then
+            echo "Error: provide time(s) and an activity name"
+            exit 1
+        fi
+
+        if ! printf '%s' "$2" | grep -qE '^([01][0-9]|2[0-3]):[0-5][0-9]$'; then
+            echo "Error: provide time(s) immediately after date"
+            exit 1
+        fi
+
+        DAY=$(date -j -f "%Y-%m-%d" "$1" +%a)
+
+        # End time provided
+        if printf '%s' "$3" | grep -qE '^([01][0-9]|2[0-3]):[0-5][0-9]$'; then
+            if [ -z "$4" ]; then
+                echo "Error: provide an activity name"
+                exit 1
+            fi
+
+            printf '%s,%s,%s,%s,%s,%s\n' "$1" "$DAY" "$2" "$3" "$4" "${*:5}" >> "$CSV_FILE"
+        else
+            ACTIVE=$(_find_active_line_num)
+            if [ "$ACTIVE" -gt 0 ]; then
+                echo "Error: session already active"
+                exit 1
+            fi
+
+            printf '%s,%s,%s,,%s,%s\n' "$1" "$DAY" "$2" "$3" "${*:4}" >> "$CSV_FILE"
+        fi
         ;;
 
     total)
@@ -154,13 +224,19 @@ case "$1" in
         fi
         ;;
 
+    sort)
+        # Sort by date then time (in case i insert stuff after the fact; not super important but might as well)
+        ;;
+
     *)
         echo "Usage:"
-        echo "  wl start [activity] [descrip]   Start tracking an activity"
-        echo "  wl stop                         Stop the current activity"
-        echo "  wl total [-d -w -lw]            Show total hours worked"
-        echo "  wl status                       Check for active session"
-        echo ""
-        echo "CSV: $CSV_FILE"
+        echo "  wl start <activity> [descr]                         Start tracking activity"
+        echo "  wl stop [HH:MM]                                     Stop current activity"
+        echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
+        echo "  wl <YYYY-MM-DD> <HH:MM> [HH:MM] <activity> [descr]  Input date & time(s) manually"
+        echo "  wl total [-d -w -lw]                                Show total hours worked"
+        echo "  wl status                                           Check for active session"
+        echo "  wl sort                                             Sort by date & time"
+        echo "Output: $CSV_FILE"
         ;;
 esac
