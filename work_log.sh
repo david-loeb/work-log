@@ -225,7 +225,9 @@ case "$1" in
         ;;
 
     sort)
-        # Sort by date then time (in case i insert stuff after the fact; not super important but might as well)
+        { 
+            head -n 1 "$CSV_FILE"; tail -n +2 "$CSV_FILE" | sort -t, -k 1,1 -k 3,3; 
+        } > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         ;;
 
     *)
