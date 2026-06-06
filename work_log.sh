@@ -6,7 +6,7 @@ if [ ! -f "$CSV_FILE" ]; then
     echo "date,day,start_time,end_time,activity,description" > "$CSV_FILE"
 fi
 
-# Active row is found as line a blank end_time field
+# Active row is found as line with blank end_time field
 # The END setup ensures that it will be the last line w/ empty end_time field
 #   The only line that should ever have blank end_time should be last line,
 #   but this approach safeguards against possibility that an earlier line does
@@ -160,14 +160,14 @@ case "$1" in
     total)
         # WINDOW_START (defined below) is a date and time that represents the 
         #   "beginning" of the day / week, where the time is always set to 6am.
-        #   This lets me effectively have days start at 6am and run til 6am the
+        #   This makes the days effectively start at 6am and run til 6am the
         #   following day.
         # The function concatenates each row's date and time cols to check if 
         #   the combo is greater than WINDOW_START and only uses those rows to 
         #   calculate the total hours.
-        # WINDOW_END (defined below) is set to blank for today and this week 
-        #   totals, and is set to the start of the current week for the last 
-        #   week total.
+        # WINDOW_END (defined below) is set to 6am one day or week later than 
+        #   the day or week being totaled (and is blank when computing totals
+        #   for today or this week).
         # The func also adds 24 hours to the end time if it's earlier than the 
         #   start time, which happens when a session goes through midnight.
         _sum_total_hours() {
