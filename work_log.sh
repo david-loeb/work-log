@@ -76,6 +76,26 @@ case "$1" in
         printf '%s,%s,%s,,%s,%s\n' "$DATE" "$DAY" "$START_TIME" "$ACTIVITY" "$DESCRIPTION" >> "$CSV_FILE"
         ;;
 
+    link)
+        if [ -z "$2" ]; then
+            echo "Error: provide an activity name"
+            exit 1
+        fi
+
+        ACTIVE=$(_find_active_line_num)
+        if [ "$ACTIVE" -gt 0 ]; then
+            echo "Error: session already active"
+            exit 1
+        fi
+
+        DATE=$(date +"%Y-%m-%d")
+        DAY=$(date +"%a")
+        # Start time is end time of previous session
+        LINE=$(tail -n 1 "$CSV_FILE")
+        START_TIME="$(echo "$LINE" | cut -d ',' -f 4)"
+        printf '%s,%s,%s,,%s,%s\n' "$DATE" "$DAY" "$START_TIME" "$2" "${*:3}" >> "$CSV_FILE"
+        ;;
+
     undo)
         ACTIVE=$(_find_active_line_num)
         if [ "$ACTIVE" -gt 0 ]; then
@@ -318,6 +338,7 @@ case "$1" in
         echo "  wl start <activity> [descr]                         Start tracking activity"
         echo "  wl stop [HH:MM]                                     Stop current activity"
         echo "  wl resume                                           Re-start prior activity"
+        echo "  wl link <activity> [descr]                          Start block @ prior stop time"
         echo "  wl undo                                             Undo a stop"
         echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
         echo "  wl <YYYY-MM-DD> <HH:MM> [HH:MM] <activity> [descr]  Input date & time(s) manually"
