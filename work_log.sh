@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CSV_FILE="$HOME/Desktop/Software/work-dash/work_log.txt"
+CSV_FILE="$HOME/Desktop/Software/cli/work-log/work_log.txt"
 
 if [ ! -f "$CSV_FILE" ]; then
     echo "date,day,start_time,end_time,activity,description" > "$CSV_FILE"
