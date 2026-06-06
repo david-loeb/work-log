@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CSV_FILE="$HOME/Desktop/Software/cli/work-log/work_log.txt"
+CSV_FILE="$HOME/Desktop/Software/work-dash/work_log.txt"
 
 if [ ! -f "$CSV_FILE" ]; then
     echo "date,day,start_time,end_time,activity,description" > "$CSV_FILE"
@@ -190,75 +190,105 @@ case "$1" in
         HOUR=$(date +"%H")
 
         case "$2" in
-            ""|-d|--day|--today)
-                # If it's currently between 12am & 6am, the start window is set 
-                #   to the prior day's date at 6am.
-                # Otherwise, it's set to today's date at 6am.
-                if [ "$HOUR" -lt 6 ]; then
-                    WINDOW_START="$(date -v-1d +"%Y-%m-%d") 06:00"
+            ""|-d|--day)
+                # If no arg, print today's hours
+                if [ -z "$3" ]; then
+                    # If it's currently between 12am & 6am, the start window is set 
+                    #   to the prior day's date at 6am.
+                    # Otherwise, it's set to today's date at 6am.
+                    if [ "$HOUR" -lt 6 ]; then
+                        WINDOW_START="$(date -v-1d +"%Y-%m-%d") 06:00"
+                    else
+                        WINDOW_START="$(date +"%Y-%m-%d") 06:00"
+                    fi
+                    WINDOW_END=""
+                    TOTAL=$(_sum_total_hours)
+                    echo "Today: $TOTAL"
+
+                # If arg, print X most recent days (including today)
+                elif printf '%s' "$3" | grep -qE '^([0-9]+|w)$'; then
+                    if [ $3 == w ]; then
+                        NUM_DAYS=6
+                    else
+                        NUM_DAYS=$(($3 - 1))
+                    fi
+                    for i in $(seq $NUM_DAYS 0); do
+                        if [ "$HOUR" -lt 6 ]; then
+                            ((i++))
+                        fi
+                        WINDOW_START_DATE="$(date -v-${i}d +"%Y-%m-%d")"
+                        WINDOW_START="$WINDOW_START_DATE 06:00"
+                        WINDOW_END="$(date -j -v+1d -f "%Y-%m-%d" "$WINDOW_START_DATE" "+%Y-%m-%d") 06:00"
+                        DAY="$(date -j -f "%Y-%m-%d" "$WINDOW_START_DATE" +%a)"
+                        TOTAL=$(_sum_total_hours)
+                        echo "$DAY: $TOTAL"
+                    done
                 else
-                    WINDOW_START="$(date +"%Y-%m-%d") 06:00"
+                    echo "Argument must be an integer or 'w'"
+                    exit 1
                 fi
-                WINDOW_END=""
-                TOTAL=$(_sum_total_hours)
-                echo "Today: $TOTAL"
                 ;;
 
-            -w|-tw|--week|--this-week)
+            -w|--week)
                 # If it's currently a Monday btwn 12am & 6am, the Monday that
                 #   begins the current week is set to the prior Monday at 6am.
                 # Otherwise, it's set to the most recent Monday at 6am, 
                 #   including if today is Monday after 6am.
                 if [ $(date +"%a") = "Mon" ] && [ "$HOUR" -lt 6 ]; then
-                    MONDAY=$(date -v-1w +"%Y-%m-%d")
+                    THIS_MONDAY=$(date -v-1w +"%Y-%m-%d")
                 else
-                    MONDAY=$(date -v-monday +"%Y-%m-%d")
+                    THIS_MONDAY=$(date -v-monday +"%Y-%m-%d")
                 fi
-                WINDOW_START="$MONDAY 06:00"
-                WINDOW_END=""
-                TOTAL=$(_sum_total_hours)
-                echo "This week: $TOTAL"
-                ;;
 
-            -lw|--last-week)
-                # Get monday that ends last week (ie mon that starts cur week)
-                if [ $(date +"%a") = "Mon" ] && [ "$HOUR" -lt 6 ]; then
-                    MONDAY_END=$(date -v-1w +"%Y-%m-%d")
-                else
-                    MONDAY_END=$(date -v-monday +"%Y-%m-%d")
-                fi
-                # Get Monday that started the last week
-                # -j tells date not to set system clock (and parse input string
-                #   instead)
-                # -v-1w subtracts a week off the input string
-                # -f "%Y-%m-%d" specifies format input string is in
-                # "$MONDAY_END" is the input string
-                # "+%Y-%m-%d" is format for output date
-                MONDAY_START=$(date -j -v-1w -f "%Y-%m-%d" "$MONDAY_END" "+%Y-%m-%d")
-                WINDOW_START="$MONDAY_START 06:00"
-                WINDOW_END="$MONDAY_END 06:00"
-                TOTAL=$(_sum_total_hours)
-                echo "Last week: $TOTAL"
-                ;;
-
-            -wd|--week-daily|--week-by-day)
-                for i in {6..0}; do
-                    if [ "$HOUR" -lt 6 ]; then
-                        ((i++))
-                    fi
-                    WINDOW_START_DATE="$(date -v-${i}d +"%Y-%m-%d")"
-                    WINDOW_START="$WINDOW_START_DATE 06:00"
-                    WINDOW_END="$(date -j -v+1d -f "%Y-%m-%d" "$WINDOW_START_DATE" "+%Y-%m-%d") 06:00"
-                    DAY="$(date -j -f "%Y-%m-%d" "$WINDOW_START_DATE" +%a)"
+                # If no arg, print this week
+                if [ -z "$3" ]; then
+                    WINDOW_START="$THIS_MONDAY 06:00"
+                    WINDOW_END=""
                     TOTAL=$(_sum_total_hours)
-                    echo "$DAY: $TOTAL"
-                done
+                    echo "This week: $TOTAL"
+
+                # If arg, print X most recent weeks
+                elif printf '%s' "$3" | grep -qE '^[0-9]+$'; then
+                    for i in $(seq $3 1); do
+                        ((i--))
+                        # Get Monday that started the last week
+                        # -j tells date not to set system clock (and parse input string
+                        #   instead)
+                        # -v-${i}w subtracts `i` weeks off the input string
+                        # -f "%Y-%m-%d" specifies format input string is in
+                        # "$THIS_MONDAY" is the input string
+                        # "+%Y-%m-%d" is format for output date
+                        MONDAY_START=$(date -j -v-${i}w -f "%Y-%m-%d" "$THIS_MONDAY" "+%Y-%m-%d")
+                        MONDAY_END=$(date -j -v+1w -f "%Y-%m-%d" "$MONDAY_START" "+%Y-%m-%d")
+                        WINDOW_START="$MONDAY_START 06:00"
+                        WINDOW_END="$MONDAY_END 06:00"
+                        TOTAL=$(_sum_total_hours)
+
+                        START_DATE=$(date -j -f "%Y-%m-%d" "$MONDAY_START" "+%-m-%d")
+                        echo "$START_DATE: $TOTAL"
+                    done
+                else
+                    echo "Argument must be an integer"
+                    exit 1
+                fi
                 ;;
 
             *)
-                echo "Error: options are -d (today), -w (this week), -lw (last week), or -wd (week by day)"
+                echo "Error: options are -d (days) and -w (weeks) with optional number"
+                exit 1
                 ;;
         esac
+        ;;
+
+    tail)
+        if [ -z "$2" ]; then
+            printf "\n$(tail -n 5 "$CSV_FILE")\n\n"
+        elif printf '%s' "$2" | grep -qE '^[0-9]+$'; then
+            printf "\n$(tail -n $2 "$CSV_FILE")\n\n"
+        else
+            echo "Argument must be an integer"
+            exit 1
+        fi
         ;;
 
     status)
@@ -291,7 +321,8 @@ case "$1" in
         echo "  wl undo                                             Undo a stop"
         echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
         echo "  wl <YYYY-MM-DD> <HH:MM> [HH:MM] <activity> [descr]  Input date & time(s) manually"
-        echo "  wl total [-d -w -lw]                                Show total hours worked"
+        echo "  wl total [-d [X w] -w [X]]                          Show total hours worked"
+        echo "  wl tail [X]                                         Show most recent entries"
         echo "  wl status                                           Check for active session"
         echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
