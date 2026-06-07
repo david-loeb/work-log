@@ -29,6 +29,11 @@ case "$1" in
             exit 1
         fi
 
+        if printf '%s' "$2" | grep -qE '^[0-9][0-9]?:[0-9][0-9]$'; then
+            echo "Omit 'start' for manual time entry: 'wl HH:MM <activity>'"
+            exit 1
+        fi
+
         DATE=$(date +"%Y-%m-%d")
         DAY=$(date +"%a")
         START_TIME=$(date +"%H:%M")
