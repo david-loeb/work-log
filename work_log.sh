@@ -4,7 +4,7 @@ DIR="$(dirname "$(readlink "$0")")"
 CSV_FILE="$DIR/work_log.txt"
 
 if [ ! -f "$CSV_FILE" ]; then
-    echo "date,day,start_time,end_time,activity,description" > "$CSV_FILE"
+    echo "date,dow,start_time,end_time,activity,description" > "$CSV_FILE"
 fi
 
 # Active row is found as line with blank end_time field
@@ -103,21 +103,22 @@ case "$1" in
         ;;
 
     undo)
+        LAST_LINE_NUM=$(wc -l < "$CSV_FILE")
         ACTIVE=$(_find_active_line_num)
         if [ "$ACTIVE" -gt 0 ]; then
-            echo "Error: session already active"
-            exit 1
+            awk -F ',' -v l="$LAST_LINE_NUM" '
+                NR != l 
+            ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
+        else 
+            awk -F ',' -v l="$LAST_LINE_NUM" '
+                NR == l {
+                    match($0, /:[0-9][0-9],[0-9][0-9]:/)
+                    print substr($0, 1, RSTART + 3) substr($0, RSTART + 9)
+                    next
+                }
+                { print }
+            ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         fi
-
-        LAST_LINE_NUM=$(wc -l < "$CSV_FILE")
-        awk -F ',' -v l="$LAST_LINE_NUM" '
-            NR == l {
-                match($0, /:[0-9][0-9],[0-9][0-9]:/)
-                print substr($0, 1, RSTART + 3) substr($0, RSTART + 9)
-                next
-            }
-            { print }
-        ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         ;;
 
     # Manually input time(s)
@@ -339,7 +340,7 @@ case "$1" in
         } > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         ;;
 
-    run)
+    launch|run|app)
         Rscript -e "library(shiny); shiny::runApp('${DIR}/../../work-dash', launch.browser=TRUE)"
         ;;
 
@@ -349,7 +350,7 @@ case "$1" in
         echo "  wl stop [HH:MM]                                     Stop current activity"
         echo "  wl resume                                           Re-start prior activity"
         echo "  wl link <activity> [descr]                          Start block @ prior stop time"
-        echo "  wl undo                                             Undo a stop"
+        echo "  wl undo                                             Undo last entry action"
         echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
         echo "  wl <YYYY-MM-DD> <HH:MM> [HH:MM] <activity> [descr]  Input date & time(s) manually"
         echo "  wl total [-d [X w] -w [X]]                          Show total hours worked"
@@ -357,7 +358,7 @@ case "$1" in
         echo "  wl status                                           Check for active session"
         echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
-        echo "  wl run                                              Run work log dashboard"
+        echo "  wl launch|run|app                                   Launch work log dashboard"
         echo "Output: $CSV_FILE"
         ;;
 esac
