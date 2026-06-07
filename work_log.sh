@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-CSV_FILE="$(dirname "$(readlink "$0")")/work_log.txt"
+DIR="$(dirname "$(readlink "$0")")"
+CSV_FILE="$DIR/work_log.txt"
 
 if [ ! -f "$CSV_FILE" ]; then
     echo "date,day,start_time,end_time,activity,description" > "$CSV_FILE"
@@ -333,6 +334,10 @@ case "$1" in
         } > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         ;;
 
+    run)
+        Rscript -e "library(shiny); shiny::runApp('${DIR}/../../work-dash', launch.browser=TRUE)"
+        ;;
+
     *)
         echo "Usage:"
         echo "  wl start <activity> [descr]                         Start tracking activity"
@@ -347,6 +352,7 @@ case "$1" in
         echo "  wl status                                           Check for active session"
         echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
+        echo "  wl run                                              Run work log dashboard"
         echo "Output: $CSV_FILE"
         ;;
 esac
