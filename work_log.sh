@@ -341,7 +341,7 @@ case "$1" in
         ;;
 
     launch|run|app)
-        Rscript -e "library(shiny); shiny::runApp('${DIR}/../../work-dash', launch.browser=TRUE)"
+        Rscript -e "library(shiny); shiny::runApp('${DIR}/../../work-log-dash', launch.browser=TRUE)"
         ;;
 
     *)
