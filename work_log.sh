@@ -183,6 +183,11 @@ case "$1" in
             exit 1
         fi
 
+        if [ -z "$3" ]; then
+            echo "Error: provide an activity name"
+            exit 1
+        fi
+
         if ! printf '%s' "$2" | grep -qE '^([01][0-9]|2[0-3]):[0-5][0-9]$'; then
             echo "Error: provide time(s) immediately after date"
             exit 1
