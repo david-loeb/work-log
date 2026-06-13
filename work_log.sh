@@ -121,6 +121,31 @@ case "$1" in
         fi
         ;;
 
+    edit)
+        if [ -z "$2" ]; then
+            echo "Error: provide an activity name"
+            exit 1
+        fi
+
+        ACTIVE=$(_find_active_line_num)
+        if [ "$ACTIVE" -eq 0 ]; then
+            echo "Error: no active session"
+            exit 1
+        fi
+
+        LAST_LINE_NUM=$(wc -l < "$CSV_FILE")
+        ACTIVITY="$2"
+        DESCRIPTION="${*:3}"
+        awk -F ',' -v a="$ACTIVITY" -v d="$DESCRIPTION" -v l="$LAST_LINE_NUM" '
+            NR == l {
+                idx = index($0, ",,")
+                print substr($0, 1, idx + 1) a "," d
+                next
+            }
+            { print }
+        ' "$CSV_FILE" > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
+        ;;
+
     # Manually input time(s)
     [01][0-9]:[0-5][0-9] | 2[0-3]:[0-5][0-9])
         if [ -z "$2" ]; then
@@ -351,6 +376,7 @@ case "$1" in
         echo "  wl resume                                           Re-start prior activity"
         echo "  wl link <activity> [descr]                          Start block @ prior stop time"
         echo "  wl undo                                             Undo last entry action"
+        echo "  wl edit <activity> [descr]                          Edit current activity"
         echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
         echo "  wl <YYYY-MM-DD> <HH:MM> [HH:MM] <activity> [descr]  Input date & time(s) manually"
         echo "  wl total [-d [X w] -w [X]]                          Show total hours worked"
