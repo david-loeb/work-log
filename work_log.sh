@@ -374,6 +374,10 @@ case "$1" in
         subl "$DIR/../../work-log-dash/scripts/data_prep.R"
         ;;
 
+    map)
+        subl "$DIR/../../work-log-dash/categories/map.csv"
+        ;;
+
     launch|run|app)
         Rscript -e "library(shiny); shiny::runApp('${DIR}/../../work-log-dash', launch.browser=TRUE)"
         ;;
@@ -393,7 +397,8 @@ case "$1" in
         echo "  wl status                                           Check for active session"
         echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
-        echo "  wl prep                                             Open activity category script"
+        echo "  wl prep                                             Open activity-category script"
+        echo "  wl map                                              Open category-umbrella map"
         echo "  wl launch|run|app                                   Launch work log dashboard"
         echo "Output: $CSV_FILE"
         ;;
