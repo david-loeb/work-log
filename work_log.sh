@@ -360,14 +360,18 @@ case "$1" in
         fi
         ;;
 
-    open)
-        open "$CSV_FILE"
-        ;;
-
     sort)
         { 
             head -n 1 "$CSV_FILE"; tail -n +2 "$CSV_FILE" | sort -t, -k1,1 -k3,3; 
         } > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
+        ;;
+    
+    open)
+        open "$CSV_FILE"
+        ;;
+
+    backup)
+        cp "$CSV_FILE" "$DIR/backup/work_log.txt"
         ;;
 
     prep|act-cat)
@@ -395,8 +399,9 @@ case "$1" in
         echo "  wl total [-d [X w] -w [X]]                          Show total hours worked"
         echo "  wl tail [X]                                         Show most recent entries"
         echo "  wl status                                           Check for active session"
-        echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
+        echo "  wl open                                             Open work_log.txt"
+        echo "  wl backup                                           Update backup copy of log"
         echo "  wl prep|act-cat                                     Open activity-category script"
         echo "  wl map|cat-umb|cat-um                               Open category-umbrella map"
         echo "  wl launch|run|app                                   Launch work log dashboard"
