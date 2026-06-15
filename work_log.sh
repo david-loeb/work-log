@@ -370,6 +370,10 @@ case "$1" in
         } > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         ;;
 
+    prep)
+        subl "$DIR/../../work-log-dash/scripts/data_prep.R"
+        ;;
+
     launch|run|app)
         Rscript -e "library(shiny); shiny::runApp('${DIR}/../../work-log-dash', launch.browser=TRUE)"
         ;;
@@ -389,6 +393,7 @@ case "$1" in
         echo "  wl status                                           Check for active session"
         echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
+        echo "  wl prep                                             Open activity category script"
         echo "  wl launch|run|app                                   Launch work log dashboard"
         echo "Output: $CSV_FILE"
         ;;
