@@ -370,11 +370,11 @@ case "$1" in
         } > "$CSV_FILE.tmp" && mv "$CSV_FILE.tmp" "$CSV_FILE"
         ;;
 
-    prep)
+    prep|act-cat)
         subl "$DIR/../../work-log-dash/scripts/data_prep.R"
         ;;
 
-    map)
+    map|cat-umb|cat-um)
         subl "$DIR/../../work-log-dash/categories/map.csv"
         ;;
 
@@ -397,8 +397,8 @@ case "$1" in
         echo "  wl status                                           Check for active session"
         echo "  wl open                                             Open work_log.txt"
         echo "  wl sort                                             Sort by date & time"
-        echo "  wl prep                                             Open activity-category script"
-        echo "  wl map                                              Open category-umbrella map"
+        echo "  wl prep|act-cat                                     Open activity-category script"
+        echo "  wl map|cat-umb|cat-um                               Open category-umbrella map"
         echo "  wl launch|run|app                                   Launch work log dashboard"
         echo "Output: $CSV_FILE"
         ;;
