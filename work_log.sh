@@ -102,6 +102,20 @@ case "$1" in
         printf '%s,%s,%s,,%s,%s\n' "$DATE" "$DAY" "$START_TIME" "$2" "${*:3}" >> "$CSV_FILE"
         ;;
 
+    next)
+        ACTIVE=$(_find_active_line_num)
+        if [ "$ACTIVE" -eq 0 ]; then
+            echo "Error: no active session"
+            exit 1
+        fi
+        if [ -z "$2" ]; then
+            echo "Error: provide an activity name"
+            exit 1
+        fi
+        wl stop
+        wl link "$2"
+        ;;
+
     undo)
         LAST_LINE_NUM=$(wc -l < "$CSV_FILE")
         ACTIVE=$(_find_active_line_num)
@@ -392,6 +406,7 @@ case "$1" in
         echo "  wl stop [HH:MM]                                     Stop current activity"
         echo "  wl resume                                           Re-start prior activity"
         echo "  wl link <activity> [descr]                          Start block @ prior stop time"
+        echo "  wl next <activity> [descr]                          Run 'stop' then 'link'"
         echo "  wl undo                                             Undo last entry action"
         echo "  wl edit <activity> [descr]                          Edit current activity"
         echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
