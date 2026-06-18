@@ -7,11 +7,7 @@ if [ ! -f "$CSV_FILE" ]; then
     echo "date,dow,start_time,end_time,activity,description" > "$CSV_FILE"
 fi
 
-# Active row is found as line with blank end_time field
-# The END setup ensures that it will be the last line w/ empty end_time field
-#   The only line that should ever have blank end_time should be last line,
-#   but this approach safeguards against possibility that an earlier line does
-# If no line is found w/ blank end_time, this will print 0 due to the `+0` part
+# Finds line with blank end_time field (or 0 if all lines have an end_time entry)
 _find_active_line_num() {
     awk -F ',' 'NR > 1 && $4 == "" { found = NR } END { print found+0 }' "$CSV_FILE"
 }
@@ -234,18 +230,6 @@ case "$1" in
         ;;
 
     total)
-        # WINDOW_START (defined below) is a date and time that represents the 
-        #   "beginning" of the day / week, where the time is always set to 6am.
-        #   This makes the days effectively start at 6am and run til 6am the
-        #   following day.
-        # The function concatenates each row's date and time cols to check if 
-        #   the combo is greater than WINDOW_START and only uses those rows to 
-        #   calculate the total hours.
-        # WINDOW_END (defined below) is set to 6am one day or week later than 
-        #   the day or week being totaled (and is blank when computing totals
-        #   for today or this week).
-        # The func also adds 24 hours to the end time if it's earlier than the 
-        #   start time, which happens when a session goes through midnight.
         _sum_total_hours() {
             awk -F ',' -v ws="$WINDOW_START" -v we="$WINDOW_END" '
                 NR > 1 && $4 != "" {
@@ -328,12 +312,6 @@ case "$1" in
                     for i in $(seq $3 1); do
                         ((i--))
                         # Get Monday that started the last week
-                        # -j tells date not to set system clock (and parse input string
-                        #   instead)
-                        # -v-${i}w subtracts `i` weeks off the input string
-                        # -f "%Y-%m-%d" specifies format input string is in
-                        # "$THIS_MONDAY" is the input string
-                        # "+%Y-%m-%d" is format for output date
                         MONDAY_START=$(date -j -v-${i}w -f "%Y-%m-%d" "$THIS_MONDAY" "+%Y-%m-%d")
                         MONDAY_END=$(date -j -v+1w -f "%Y-%m-%d" "$MONDAY_START" "+%Y-%m-%d")
                         WINDOW_START="$MONDAY_START 06:00"
