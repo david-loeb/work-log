@@ -228,6 +228,11 @@ case "$1" in
         fi
         ;;
 
+    # Get entries from Notes app
+    notes|note)
+        eval "$DIR/pull_from_notes.sh"
+        ;;
+
     total)
         # WINDOW_START (defined below) is a date and time that represents the 
         #   "beginning" of the day / week, where the time is always set to 6am.
@@ -411,6 +416,7 @@ case "$1" in
         echo "  wl edit <activity> [descr]                          Edit current activity"
         echo "  wl <HH:MM> [HH:MM] <activity> [descr]               Input time(s) manually"
         echo "  wl <YYYY-MM-DD> <HH:MM> [HH:MM] <activity> [descr]  Input date & time(s) manually"
+        echo "  al notes|note                                       Add entries from Notes app"
         echo "  wl total [-d [X w] -w [X]]                          Show total hours worked"
         echo "  wl tail [X]                                         Show most recent entries"
         echo "  wl status                                           Check for active session"
