@@ -336,7 +336,7 @@ case "$1" in
 
     tail)
         if [ -z "$2" ]; then
-            printf "\n$(tail -n 5 "$CSV_FILE")\n\n"
+            printf "\n$(tail -n 10 "$CSV_FILE")\n\n"
         elif printf '%s' "$2" | grep -qE '^[0-9]+$'; then
             printf "\n$(tail -n $2 "$CSV_FILE")\n\n"
         else
